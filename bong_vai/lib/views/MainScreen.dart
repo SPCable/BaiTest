@@ -1,13 +1,31 @@
-import 'dart:ui';
-
+import 'package:bong_vai/models/user.dart';
+import 'package:bong_vai/view_models/user_list_view_model.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 
 class MainScreen extends StatefulWidget {
   @override
   MainScreenState createState() => MainScreenState();
 }
 
+Stream<int> stream() {
+  Duration delaytime = Duration(seconds: 1);
+  Stream<int> stream = Stream<int>.periodic(delaytime, makeNumber);
+  return stream;
+}
+
+void testGet() {
+  Get.snackbar('title', 'message');
+}
+
 class MainScreenState extends State<MainScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Provider.of<UserListViewModel>(context, listen: false).fetchUserList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -15,6 +33,36 @@ class MainScreenState extends State<MainScreen> {
         body: SingleChildScrollView(
           child: Column(
             children: [
+              SizedBox(
+                height: 10,
+              ),
+              Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: StreamBuilder(
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.done) {
+                        return Text('done');
+                      } else if (snapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return Text(
+                          'waiting',
+                          style: TextStyle(color: Colors.white, fontSize: 40),
+                        );
+                      }
+                      return Text(
+                        snapshot.data.toString(),
+                        style: TextStyle(color: Colors.white, fontSize: 40),
+                      );
+                    },
+                    stream: null,
+                  ),
+                ),
+                color: Colors.teal[600],
+              ),
+              SizedBox(
+                height: 10,
+              ),
               listbody(),
               SizedBox(
                 height: 10,
@@ -79,6 +127,8 @@ class MainScreenState extends State<MainScreen> {
   }
 
   Widget listbody() {
+    final userListOnProvider = Provider.of<UserListViewModel>(context);
+
     return Container(
       color: Colors.white,
       padding: EdgeInsets.all(18),
@@ -94,14 +144,14 @@ class MainScreenState extends State<MainScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Có thể xuất hiện trong",
+                      "Contacts",
                       style: TextStyle(color: Colors.grey[800]),
                     ),
                     SizedBox(
                       height: 10,
                     ),
                     Text(
-                      "Giai đoạn cây trồng",
+                      "Contacts",
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
                     )
@@ -123,12 +173,20 @@ class MainScreenState extends State<MainScreen> {
           ),
           Container(
             height: 500,
-            child: ListView.builder(
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                return listItem();
-              },
-            ),
+            child: userListOnProvider.userList.length != 0
+                ? ListView.builder(
+                    itemCount: userListOnProvider.userList.length,
+                    itemBuilder: (context, index) {
+                      return listItem(userListOnProvider.userList[index]);
+                    },
+                  )
+                : Center(
+                    child: Container(
+                      height: 100,
+                      width: 100,
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
           ),
           SizedBox(
             height: 30,
@@ -162,7 +220,7 @@ class MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget listItem() {
+  Widget listItem(User user) {
     return Card(
       elevation: 1,
       child: Container(
@@ -170,27 +228,32 @@ class MainScreenState extends State<MainScreen> {
           children: [
             Expanded(
               flex: 0,
-              child: Image(
-                height: 100,
-                width: 200,
-                image: NetworkImage("https://picsum.photos/500"),
+              child: CircleAvatar(
+                maxRadius: 20,
+                backgroundColor: Colors.black,
+                child: Image(
+                    height: 100, image: NetworkImage(user.picture.medium)),
               ),
             ),
             Expanded(
-              flex: 1,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Nấm"),
-                  SizedBox(
-                    height: 5,
-                  ),
-                  Text(
-                    "Bệnh thối rễ Bông vải",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ],
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user.name.last + " " + user.name.first),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Text(
+                      user.phone,
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ],
+                ),
               ),
             ),
             IconButton(
@@ -203,3 +266,5 @@ class MainScreenState extends State<MainScreen> {
     );
   }
 }
+
+int makeNumber(int computationCount) => (computationCount + 1);
